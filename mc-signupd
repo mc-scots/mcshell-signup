@@ -49,7 +49,7 @@ function proc-command {
 	*)
 	    cmd-invalid
 	    ;;
-    esac 
+    esac > $socket 
 }
 
 # Request a password reset/create account
@@ -87,7 +87,7 @@ function cmd-invalid {
 
 # there can be only one!
 killall mc-signup 2> /dev/null
-rm -f /tmp/mc-signup /tmp/mc-signup-pipe
+rm -rf /tmp/mc-signup /tmp/mc-signup-pipe
 
 # create the directory we keep all of our info in
 mkdir /tmp/mc-signup
