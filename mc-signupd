@@ -36,20 +36,18 @@ function proc-command {
     arg1=$(echo $1 | cut -d: -f4)
     arg2=$(echo $1 | cut -d: -f5)
 
-    #validate the command
-
     #run the command
     case $cmd in
 	"REQUEST")
-	    cmd-request $email
+	    cmd-request $email > $socket
 	    ;;
 	"PASSWD")
-	    cmd-passwd $email $arg1 $arg2
+	    cmd-passwd $email $arg1 $arg2 > $socket
 	    ;;
 	*)
-	    cmd-invalid
+	    cmd-invalid > $socket
 	    ;;
-    esac > $socket 
+    esac
 }
 
 # Request a password reset/create account
@@ -70,7 +68,25 @@ function cmd-passwd {
 	token_email=$(cat /tmp/mc-signup/$2)
 	if [ "$1" == "$token_email" ]
 	then
-	    echo "SUCCESS"
+	    user=$(extract-user $1)
+	    
+	    #create the user if needed
+	    if ! user-exists $user; then
+		sudo useradd -m $user
+		if [ $? -ne 0 ]; then
+		    echo "ERROR:Failed to create user"
+		fi
+	    fi
+
+	    #change the password
+	    echo "$user:$3" | sudo chpasswd 
+	    if [ $? -eq 0 ]; then
+		echo "SUCCESS"
+	    else
+		echo "ERROR:Failed to update password"
+	    fi
+	    
+	    rm /tmp/mc-signup/$2
 	else
 	    echo "ERROR:Security token did not match."
 	fi
@@ -82,7 +98,7 @@ function cmd-passwd {
 
 # Invalid Command
 function cmd-invalid {
-    echo "ERROR:Invalid or malformed command."
+    echo "ERROR:Invalid or malformed command." 
 }
 
 # there can be only one!
@@ -100,7 +116,7 @@ chmod a+rw /tmp/mc-signup-pipe
 while (( 1 ))
 do
     #Read the command and run it (easy, huh?)
-    read cmd #< /tmp/mc-signup-pipe
-    proc-command "$cmd"
+    read cmd < /tmp/mc-signup-pipe
+    proc-command $cmd
 done
 
