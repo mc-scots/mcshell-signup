@@ -1,0 +1,59 @@
+#!/bin/bash
+# This is a simple client for interacting with the mc-signup daemon.
+# Copyright (C) 2018 Robert Lowe <robert.lowe@maryvillecollege.edu>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+#send a signup request
+function send-request {
+    echo "$1:REQUEST:$2" > /tmp/mc-signup-pipe
+    read resp < $1
+    echo $resp
+}
+
+#send a password request
+function send-passwd {
+    echo "$1:PASSWD:$2:$3:$4" > /tmp/mc-signup-pipe
+    read resp < $1
+    echo $resp
+}
+
+#echo invalid output
+function send-invalid {
+    (>&2 echo "INVALID COMMAND")
+}
+
+
+#initialize the client
+socket="/tmp/mc-signup-client-$$"
+mkfifo $socket
+chmod a+rw $socket
+
+#run the appropriate command
+case `basename $0` in
+    "mc-signup-request")
+	send-request $socket $1
+	;;
+    "mc-signup-passwd")
+	send-passwd $socket $1 $2 $3
+	;;
+    *)
+	send-invalid
+	;;
+esac
+
+	 
+
+#shutdown the client
+rm $socket
