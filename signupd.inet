@@ -8,4 +8,5 @@ service vnc
     server      = /home/isaac/mcshell-signup/mc-signupd
     type        = UNLISTED
     port        = 1819
+    only_from   = 127.0.0.1
 }

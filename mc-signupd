@@ -14,6 +14,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+REQUEST_DIR=$(dirname $0)/requests 
 
 function user-exists {
     id $1 > /dev/null 2>&1
@@ -30,22 +31,21 @@ function extract-user {
 # commands are expected in the form: namedSocket:COMMAND:EMAIL:ARG1:ARG2
 # Where ARG1 and ARG2 are optional and based on the command
 function proc-command {
-    socket=$(echo $1 | cut -d: -f1)
-    cmd=$(echo $1 | cut -d: -f2)
-    email=$(echo $1 | cut -d: -f3)
-    arg1=$(echo $1 | cut -d: -f4)
-    arg2=$(echo $1 | cut -d: -f5)
+    cmd=$(echo $1 | cut -d: -f1)
+    email=$(echo $1 | cut -d: -f2)
+    arg1=$(echo $1 | cut -d: -f3)
+    arg2=$(echo $1 | cut -d: -f4)
 
     #run the command
     case $cmd in
 	"REQUEST")
-	    cmd-request $email > $socket
+	    cmd-request $email 
 	    ;;
 	"PASSWD")
-	    cmd-passwd $email $arg1 $arg2 > $socket
+	    cmd-passwd $email $arg1 $arg2 
 	    ;;
 	*)
-	    cmd-invalid > $socket
+	    cmd-invalid 
 	    ;;
     esac
 }
@@ -55,7 +55,7 @@ function cmd-request {
     if validate-user $1; then
 	uuid=$(uuidgen)
 	echo "SUCCESS:$uuid"
-	echo $1 > /tmp/mc-signup/$uuid
+	echo $1 > $REQUEST_DIR/$uuid
     else
 	echo "ERROR:Registration is only open to Maryville College Students, Staff, and Faculty"
     fi
@@ -63,9 +63,9 @@ function cmd-request {
 
 # Send a password reset.  This completes the request
 function cmd-passwd {
-    if [ -e /tmp/mc-signup/$2 ]
+    if [ -e $REQUEST_DIR/$2 ]
     then
-	token_email=$(cat /tmp/mc-signup/$2)
+	token_email=$(cat $REQUEST_DIR/$2)
 	if [ "$1" == "$token_email" ]
 	then
 	    user=$(extract-user $1)
@@ -87,7 +87,7 @@ function cmd-passwd {
 		echo "ERROR:Failed to update password"
 	    fi
 	    
-	    rm /tmp/mc-signup/$2
+	    rm $REQUEST_DIR/$2
 	else
 	    echo "ERROR:Security token did not match."
 	fi
@@ -102,22 +102,7 @@ function cmd-invalid {
     echo "ERROR:Invalid or malformed command." 
 }
 
-# there can be only one!
-killall mc-signup 2> /dev/null
-rm -rf /tmp/mc-signup /tmp/mc-signup-pipe
-
-# create the directory we keep all of our info in
-mkdir /tmp/mc-signup
-mkfifo /tmp/mc-signup-pipe
-chmod 700 /tmp/mc-signup
-chmod a+rw /tmp/mc-signup-pipe
-
-
-# The daemon loop
-while (( 1 ))
-do
-    #Read the command and run it (easy, huh?)
-    read cmd < /tmp/mc-signup-pipe
-    proc-command $cmd
-done
+#Read the command and run it (easy, huh?)
+read cmd 
+proc-command $cmd
 

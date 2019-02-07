@@ -17,16 +17,12 @@
 
 #send a signup request
 function send-request {
-    echo "$1:REQUEST:$2" > /tmp/mc-signup-pipe
-    read resp < $1
-    echo $resp
+    echo "REQUEST:$1" | nc localhost 1819
 }
 
 #send a password request
 function send-passwd {
-    echo "$1:PASSWD:$2:$3:$4" > /tmp/mc-signup-pipe
-    read resp < $1
-    echo $resp
+    echo "PASSWD:$1:$2:$3" | nc localhost 1819
 }
 
 #echo invalid output
@@ -35,25 +31,15 @@ function send-invalid {
 }
 
 
-#initialize the client
-socket="/tmp/mc-signup-client-$$"
-mkfifo $socket
-chmod a+rw $socket
-
 #run the appropriate command
 case `basename $0` in
     "mc-signup-request")
-	send-request $socket $1
+	send-request $1
 	;;
     "mc-signup-passwd")
-	send-passwd $socket $1 $2 $3
+	send-passwd $1 $2 $3
 	;;
     *)
 	send-invalid
 	;;
 esac
-
-	 
-
-#shutdown the client
-rm $socket
